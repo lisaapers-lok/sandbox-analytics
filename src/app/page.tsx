@@ -1,3 +1,9 @@
-import { HomeScreen } from "./home-screen";
+import type { Metadata } from "next";
+import { AnalyticsScreen } from "./analytics-screen";
 
-export default HomeScreen;
+export const metadata: Metadata = {
+    title: "Analytics",
+    description: "Track your translation performance and AI consumption",
+};
+
+export default AnalyticsScreen;
