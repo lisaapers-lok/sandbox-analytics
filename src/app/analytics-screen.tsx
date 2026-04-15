@@ -59,7 +59,14 @@ const dateItems = [
     { id: "7", label: "Last 7 Days", supportingText: "@olivia" },
 ];
 
-const metricSelectItems = [{ id: "processed", label: "Processed Words" }];
+type MetricId = "processed" | "proAi" | "mcp" | "tasks";
+
+const metricSelectItems: { id: MetricId; label: string }[] = [
+    { id: "processed", label: "Processed words" },
+    { id: "proAi", label: "Pro AI words" },
+    { id: "mcp", label: "MCP tokens" },
+    { id: "tasks", label: "Tasks completed" },
+];
 
 const tabItems: { id: string; children: string }[] = [
     { id: "usage", children: "Usage trends" },
@@ -73,6 +80,8 @@ const tableColumns: Column[] = [
     { id: "project", name: "Project" },
     { id: "total", name: "Total usage" },
     { id: "proAi", name: "Pro AI words" },
+    { id: "mcpTokens", name: "MCP tokens" },
+    { id: "tasksCompleted", name: "Tasks completed" },
     { id: "savings", name: "Savings" },
     { id: "quota", name: "Quota used" },
     { id: "status", name: "Status" },
@@ -85,17 +94,69 @@ type DataRow = {
     project: string;
     total: string;
     proAi: string;
+    mcpTokens: string;
+    tasksCompleted: string;
     savings: string;
     quota: number;
     status: RowStatus;
 };
 
 const tableRows: DataRow[] = [
-    { id: "1", project: "Mobile App - iOS", total: "1.2M", proAi: "420k", savings: "$1,120", quota: 62, status: "on-track" },
-    { id: "2", project: "Website Localization", total: "840k", proAi: "280k", savings: "$980", quota: 45, status: "on-track" },
-    { id: "3", project: "Marketing Website", total: "2.1M", proAi: "600k", savings: "$1,540", quota: 88, status: "at-risk" },
-    { id: "4", project: "Help Center", total: "310k", proAi: "90k", savings: "$320", quota: 18, status: "on-track" },
-    { id: "5", project: "Internal Docs", total: "1.9M", proAi: "750k", savings: "$1,680", quota: 96, status: "exceeded" },
+    {
+        id: "1",
+        project: "Mobile App - iOS",
+        total: "1.2M",
+        proAi: "420k",
+        mcpTokens: "380k",
+        tasksCompleted: "412",
+        savings: "$1,120",
+        quota: 62,
+        status: "on-track",
+    },
+    {
+        id: "2",
+        project: "Website Localization",
+        total: "840k",
+        proAi: "280k",
+        mcpTokens: "310k",
+        tasksCompleted: "298",
+        savings: "$980",
+        quota: 45,
+        status: "on-track",
+    },
+    {
+        id: "3",
+        project: "Marketing Website",
+        total: "2.1M",
+        proAi: "600k",
+        mcpTokens: "540k",
+        tasksCompleted: "501",
+        savings: "$1,540",
+        quota: 88,
+        status: "at-risk",
+    },
+    {
+        id: "4",
+        project: "Help Center",
+        total: "310k",
+        proAi: "90k",
+        mcpTokens: "72k",
+        tasksCompleted: "104",
+        savings: "$320",
+        quota: 18,
+        status: "on-track",
+    },
+    {
+        id: "5",
+        project: "Internal Docs",
+        total: "1.9M",
+        proAi: "750k",
+        mcpTokens: "690k",
+        tasksCompleted: "612",
+        savings: "$1,680",
+        quota: 96,
+        status: "exceeded",
+    },
 ];
 
 function QuotaBar({ percent }: { percent: number }) {
@@ -130,7 +191,90 @@ function StatusBadge({ status }: { status: RowStatus }) {
     );
 }
 
-function UsageTrendChart() {
+const metricTrendConfig: Record<
+    MetricId,
+    {
+        chartYs: number[];
+        lineStroke: string;
+        gradTop: string;
+        gradBottom: string;
+        total: string;
+        totalCaption: string;
+        trendLabel: string;
+        trendBadgeColor: "success" | "warning" | "error";
+        progress: number;
+        detailA: { label: string; value: string; valueClass?: string };
+        detailB: { label: string; value: string; valueClass?: string };
+        chartAriaTitle: string;
+    }
+> = {
+    processed: {
+        chartYs: [142, 128, 118, 125, 108, 98, 102, 88, 92, 78, 82, 68, 72, 58, 52, 48],
+        lineStroke: "var(--color-fg-brand-primary)",
+        gradTop: "var(--color-brand-400)",
+        gradBottom: "var(--color-brand-200)",
+        total: "2.4M",
+        totalCaption: "Total",
+        trendLabel: "+12.8%",
+        trendBadgeColor: "success",
+        progress: 70,
+        detailA: { label: "vs last period", value: "+8.2%", valueClass: "text-success-primary" },
+        detailB: { label: "Est. monthly cost", value: "$420" },
+        chartAriaTitle: "Processed words usage trend over the last 30 days",
+    },
+    proAi: {
+        chartYs: [155, 148, 140, 138, 132, 125, 120, 115, 110, 105, 98, 92, 88, 85, 82, 78],
+        lineStroke: "var(--color-fg-brand-primary)",
+        gradTop: "var(--color-brand-400)",
+        gradBottom: "var(--color-brand-200)",
+        total: "840k",
+        totalCaption: "Total",
+        trendLabel: "+9.4%",
+        trendBadgeColor: "success",
+        progress: 84,
+        detailA: { label: "Pro AI savings", value: "$4,240", valueClass: "text-success-primary" },
+        detailB: { label: "Current cost (PAYG)", value: "$1,850.00" },
+        chartAriaTitle: "Pro AI words usage trend over the last 30 days",
+    },
+    mcp: {
+        chartYs: [130, 145, 120, 150, 135, 160, 140, 155, 148, 152, 138, 142, 135, 128, 132, 125],
+        lineStroke: "var(--color-fg-success-primary)",
+        gradTop: "var(--color-success-400)",
+        gradBottom: "var(--color-success-200)",
+        total: "1.2M",
+        totalCaption: "Total",
+        trendLabel: "+6.1%",
+        trendBadgeColor: "success",
+        progress: 80,
+        detailA: { label: "Token efficiency", value: "94%" },
+        detailB: { label: "Cost per 1k tokens", value: "$0.02" },
+        chartAriaTitle: "MCP token usage trend over the last 30 days",
+    },
+    tasks: {
+        chartYs: [160, 158, 155, 150, 145, 140, 135, 130, 125, 118, 112, 105, 98, 92, 88, 82],
+        lineStroke: "var(--color-fg-warning-primary)",
+        gradTop: "var(--color-warning-400)",
+        gradBottom: "var(--color-warning-200)",
+        total: "1,420",
+        totalCaption: "Completed",
+        trendLabel: "+18.2%",
+        trendBadgeColor: "success",
+        progress: 71,
+        detailA: { label: "Completion rate", value: "98.2%" },
+        detailB: { label: "Avg. task duration", value: "4.2 min" },
+        chartAriaTitle: "Tasks completed trend over the last 30 days",
+    },
+};
+
+function metricToTableColumnId(metric: MetricId): string {
+    if (metric === "processed") return "total";
+    if (metric === "proAi") return "proAi";
+    if (metric === "mcp") return "mcpTokens";
+    return "tasksCompleted";
+}
+
+function MetricTrendChart({ metric }: { metric: MetricId }) {
+    const cfg = metricTrendConfig[metric];
     const rawId = useId().replace(/:/g, "");
     const gradientId = rawId ? `usage-chart-grad-${rawId}` : "usage-chart-grad";
     const chartTitleId = rawId ? `usage-chart-title-${rawId}` : "usage-chart-title";
@@ -139,29 +283,29 @@ function UsageTrendChart() {
         const h = 180;
         const padY = 24;
         const innerH = h - padY;
-        const ys = [142, 128, 118, 125, 108, 98, 102, 88, 92, 78, 82, 68, 72, 58, 52, 48];
+        const ys = metricTrendConfig[metric].chartYs;
         const n = ys.length;
         const step = w / (n - 1);
         const pts = ys.map((y, i) => ({ x: i * step, y }));
         const line = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
         const area = `${line} L ${w} ${innerH} L 0 ${innerH} Z`;
         return { linePath: line, areaPath: area };
-    }, []);
+    }, [metric]);
 
     return (
         <svg className="h-44 w-full sm:h-56 md:h-60" viewBox="0 0 1000 180" preserveAspectRatio="none" role="img" aria-labelledby={chartTitleId}>
-            <title id={chartTitleId}>Processed words usage trend over the last 30 days</title>
+            <title id={chartTitleId}>{cfg.chartAriaTitle}</title>
             <defs>
                 <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--color-brand-400)" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="var(--color-brand-200)" stopOpacity={0.06} />
+                    <stop offset="0%" stopColor={cfg.gradTop} stopOpacity={0.35} />
+                    <stop offset="100%" stopColor={cfg.gradBottom} stopOpacity={0.06} />
                 </linearGradient>
             </defs>
             <path d={areaPath} fill={`url(#${gradientId})`} />
             <path
                 d={linePath}
                 fill="none"
-                stroke="var(--color-fg-brand-primary)"
+                stroke={cfg.lineStroke}
                 strokeWidth={2.5}
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -175,7 +319,9 @@ export const AnalyticsScreen = () => {
     const [project, setProject] = useState("all");
     const [language, setLanguage] = useState("en-de");
     const [dateRange, setDateRange] = useState("30");
-    const [metric, setMetric] = useState("processed");
+    const [metric, setMetric] = useState<MetricId>("processed");
+    const usageMetric = metricTrendConfig[metric];
+    const highlightedColumnId = metricToTableColumnId(metric);
     const [allDataToolbarKeys, setAllDataToolbarKeys] = useState<Selection>(() => new Set<Key>());
 
     return (
@@ -339,7 +485,9 @@ export const AnalyticsScreen = () => {
                                                                         aria-label="Metric"
                                                                         items={metricSelectItems}
                                                                         selectedKey={metric}
-                                                                        onSelectionChange={(key: Key | null) => key != null && setMetric(String(key))}
+                                                                        onSelectionChange={(key: Key | null) =>
+                                                                            key != null && setMetric(key as MetricId)
+                                                                        }
                                                                         size="md"
                                                                         className="w-full"
                                                                     >
@@ -347,18 +495,42 @@ export const AnalyticsScreen = () => {
                                                                     </Select>
                                                                     <div className="space-y-2">
                                                                         <div className="flex items-baseline justify-between gap-2">
-                                                                            <span className="text-lg font-semibold text-primary">2.4M</span>
-                                                                            <span className="text-sm text-tertiary">Total</span>
+                                                                            <span className="text-lg font-semibold text-primary">{usageMetric.total}</span>
+                                                                            <span className="text-sm text-tertiary">{usageMetric.totalCaption}</span>
                                                                         </div>
                                                                         <div className="flex items-center justify-between gap-2">
                                                                             <span className="text-sm text-tertiary">Trend</span>
-                                                                            <Badge color="success" size="sm" type="pill-color">
-                                                                                +12.8%
+                                                                            <Badge color={usageMetric.trendBadgeColor} size="sm" type="pill-color">
+                                                                                {usageMetric.trendLabel}
                                                                             </Badge>
                                                                         </div>
                                                                     </div>
+                                                                    <div className="space-y-2 border-t border-secondary pt-4">
+                                                                        <div className="flex items-center justify-between gap-2 text-sm">
+                                                                            <span className="text-tertiary">{usageMetric.detailA.label}</span>
+                                                                            <span
+                                                                                className={cx(
+                                                                                    "font-medium text-primary",
+                                                                                    usageMetric.detailA.valueClass,
+                                                                                )}
+                                                                            >
+                                                                                {usageMetric.detailA.value}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="flex items-center justify-between gap-2 text-sm">
+                                                                            <span className="text-tertiary">{usageMetric.detailB.label}</span>
+                                                                            <span
+                                                                                className={cx(
+                                                                                    "font-medium text-primary",
+                                                                                    usageMetric.detailB.valueClass,
+                                                                                )}
+                                                                            >
+                                                                                {usageMetric.detailB.value}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
                                                                     <ProgressBar
-                                                                        value={70}
+                                                                        value={usageMetric.progress}
                                                                         labelPosition="bottom"
                                                                         className="rounded-full"
                                                                         progressClassName="rounded-full"
@@ -372,7 +544,7 @@ export const AnalyticsScreen = () => {
                                                         <div className="min-w-0 lg:col-span-8 xl:col-span-9">
                                                             <div className="flex h-full min-h-0 flex-col rounded-lg border-[1px] border-solid border-primary bg-primary p-4 shadow-xs sm:p-5 md:p-6">
                                                                 <div className="relative w-full min-w-0 flex-1 overflow-hidden">
-                                                                    <UsageTrendChart />
+                                                                    <MetricTrendChart metric={metric} />
                                                                     <div className="mt-3 flex w-full min-w-0 justify-between gap-1 text-center text-xs text-tertiary sm:mt-4 sm:gap-2">
                                                                         {["Day 1", "Day 8", "Day 15", "Day 22", "Day 29", "Day 30", "Sun"].map((d) => (
                                                                             <span key={d} className="min-w-0 flex-1 truncate">
@@ -425,7 +597,17 @@ export const AnalyticsScreen = () => {
                                     />
                                     <Table aria-label="Project usage data" size="md">
                                         <Table.Header columns={tableColumns}>
-                                            {(col) => <Table.Head id={col.id} label={col.name} isRowHeader={col.id === "project"} />}
+                                            {(col) => (
+                                                <Table.Head
+                                                    id={col.id}
+                                                    label={col.name}
+                                                    isRowHeader={col.id === "project"}
+                                                    className={cx(
+                                                        col.id === highlightedColumnId &&
+                                                            "bg-secondary ring-1 ring-inset ring-brand",
+                                                    )}
+                                                />
+                                            )}
                                         </Table.Header>
                                         <Table.Body items={tableRows}>
                                             {(row: DataRow) => (
@@ -434,13 +616,21 @@ export const AnalyticsScreen = () => {
                                                         <Table.Cell
                                                             className={cx(
                                                                 column.id === "project" && "font-medium text-primary",
-                                                                (column.id === "total" || column.id === "proAi" || column.id === "savings") &&
+                                                                (column.id === "total" ||
+                                                                    column.id === "proAi" ||
+                                                                    column.id === "mcpTokens" ||
+                                                                    column.id === "tasksCompleted" ||
+                                                                    column.id === "savings") &&
                                                                     "font-medium text-primary",
+                                                                column.id === highlightedColumnId &&
+                                                                    "bg-secondary ring-1 ring-inset ring-brand",
                                                             )}
                                                         >
                                                             {column.id === "project" && row.project}
                                                             {column.id === "total" && row.total}
                                                             {column.id === "proAi" && row.proAi}
+                                                            {column.id === "mcpTokens" && row.mcpTokens}
+                                                            {column.id === "tasksCompleted" && row.tasksCompleted}
                                                             {column.id === "savings" && row.savings}
                                                             {column.id === "quota" && <QuotaBar percent={row.quota} />}
                                                             {column.id === "status" && <StatusBadge status={row.status} />}
